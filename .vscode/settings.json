@@ -1,0 +1,24 @@
+{
+  // 1. 全局默认格式化器（设为Prettier）
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  // 2. 保存时自动格式化（核心！）
+  "editor.formatOnSave": true,
+  // 3. 格式化选中代码（手动触发）
+  "editor.formatOnSelection": true,
+  // 4. 粘贴代码时自动格式化
+  "editor.formatOnPaste": true,
+
+  // 前端：统一用Prettier
+  "[javascript]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[typescript]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[html]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[vue]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[css]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  // Python：指定Black
+  "[python]": { "editor.defaultFormatter": "ms-python.black-formatter" },
+  // Java：内置格式化器
+  "[java]": {
+    "editor.defaultFormatter": "redhat.java"
+  },
+  "js/ts.tsdk.path": "node_modules\\typescript\\lib"
+}

@@ -1,0 +1,3 @@
+import { NextResponse } from 'next/server';
+import { requirePermission } from '@/lib/admin-auth'; import { prisma } from '@/lib/prisma';
+export async function PUT(req:Request,{params}:{params:Promise<{id:string}>}){try{await requirePermission('home.edit');const b=await req.json();const data=await prisma.pageSection.update({where:{id:Number((await params).id)},data:{sectionKey:b.sectionKey,title:b.title||null,subtitle:b.subtitle||null,content:null,imageUrl:null,videoUrl:null,data:typeof b.data==='string'?JSON.parse(b.data||'null'):b.data||null,sortOrder:Number(b.sortOrder||0),enabled:Boolean(b.enabled)}});return NextResponse.json({success:true,data});}catch(e){return NextResponse.json({success:false,message:e instanceof Error?e.message:'更新区块失败'},{status:400});}}

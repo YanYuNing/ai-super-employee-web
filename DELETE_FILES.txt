@@ -1,0 +1,5 @@
+请在 Windows 项目根目录执行：
+
+Remove-Item .\middleware.ts -Force -ErrorAction SilentlyContinue
+
+确认根目录只保留 proxy.ts，不要同时存在 middleware.ts 和 proxy.ts。

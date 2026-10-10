@@ -1,0 +1,56 @@
+SET NAMES utf8mb4;
+SET FOREIGN_KEY_CHECKS = 0;
+
+CREATE TABLE IF NOT EXISTS `storage_configs` (
+  `id` INT NOT NULL DEFAULT 1,
+  `provider` VARCHAR(30) NOT NULL DEFAULT 'LOCAL',
+  `endpoint` VARCHAR(500) NULL,
+  `region` VARCHAR(100) NULL,
+  `bucket` VARCHAR(255) NULL,
+  `accessKeyId` VARCHAR(255) NULL,
+  `secretEncrypted` VARCHAR(1000) NULL,
+  `basePath` VARCHAR(500) NULL,
+  `cdnUrl` VARCHAR(1000) NULL,
+  `maxFileSizeMb` INT NOT NULL DEFAULT 2048,
+  `allowedTypes` JSON NULL,
+  `enabled` BOOLEAN NOT NULL DEFAULT TRUE,
+  `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `updatedAt` DATETIME(3) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='文件存储配置：本地、阿里云OSS等云端存储';
+
+ALTER TABLE `media_assets`
+  ADD COLUMN IF NOT EXISTS `storageProvider` VARCHAR(30) NOT NULL DEFAULT 'LOCAL',
+  ADD COLUMN IF NOT EXISTS `storageKey` VARCHAR(2000) NULL,
+  ADD COLUMN IF NOT EXISTS `originalName` VARCHAR(500) NULL,
+  ADD COLUMN IF NOT EXISTS `extension` VARCHAR(30) NULL,
+  ADD COLUMN IF NOT EXISTS `folder` VARCHAR(255) NULL,
+  ADD COLUMN IF NOT EXISTS `width` INT NULL,
+  ADD COLUMN IF NOT EXISTS `height` INT NULL,
+  ADD COLUMN IF NOT EXISTS `metadata` JSON NULL,
+  ADD COLUMN IF NOT EXISTS `isPublic` BOOLEAN NOT NULL DEFAULT TRUE;
+
+ALTER TABLE `skill_versions`
+  ADD COLUMN IF NOT EXISTS `fileAssetId` INT NULL,
+  ADD COLUMN IF NOT EXISTS `fileName` VARCHAR(255) NULL,
+  ADD COLUMN IF NOT EXISTS `mimeType` VARCHAR(100) NULL;
+
+ALTER TABLE `prompts`
+  ADD COLUMN IF NOT EXISTS `fileAssetId` INT NULL,
+  ADD COLUMN IF NOT EXISTS `fileName` VARCHAR(255) NULL,
+  ADD COLUMN IF NOT EXISTS `fileType` VARCHAR(100) NULL;
+
+SET FOREIGN_KEY_CHECKS = 1;
+
+-- Foreign keys are created only when absent; this migration is intentionally additive.
+SET @fk1 := (SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS WHERE CONSTRAINT_SCHEMA=DATABASE() AND TABLE_NAME='skill_versions' AND CONSTRAINT_NAME='skill_versions_fileAssetId_fkey');
+SET @sql1 := IF(@fk1=0, 'ALTER TABLE `skill_versions` ADD CONSTRAINT `skill_versions_fileAssetId_fkey` FOREIGN KEY (`fileAssetId`) REFERENCES `media_assets` (`id`) ON DELETE SET NULL ON UPDATE CASCADE', 'SELECT 1');
+PREPARE stmt1 FROM @sql1; EXECUTE stmt1; DEALLOCATE PREPARE stmt1;
+
+SET @fk2 := (SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS WHERE CONSTRAINT_SCHEMA=DATABASE() AND TABLE_NAME='prompts' AND CONSTRAINT_NAME='prompts_fileAssetId_fkey');
+SET @sql2 := IF(@fk2=0, 'ALTER TABLE `prompts` ADD CONSTRAINT `prompts_fileAssetId_fkey` FOREIGN KEY (`fileAssetId`) REFERENCES `media_assets` (`id`) ON DELETE SET NULL ON UPDATE CASCADE', 'SELECT 1');
+PREPARE stmt2 FROM @sql2; EXECUTE stmt2; DEALLOCATE PREPARE stmt2;
+
+INSERT INTO `storage_configs` (`id`,`provider`,`enabled`,`updatedAt`)
+VALUES (1,'LOCAL',TRUE,CURRENT_TIMESTAMP(3))
+ON DUPLICATE KEY UPDATE `id`=`id`;

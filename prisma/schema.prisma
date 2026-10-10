@@ -1,0 +1,855 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================
+// 枚举
+// ============================================================
+
+enum UserStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum AdminStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ProductStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum SkillStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum DownloadStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  FOLLOWING
+  CONVERTED
+  CLOSED
+}
+
+enum LeadSource {
+  WEBSITE
+  DOWNLOAD
+  DEMO
+  PRODUCT
+  SKILL
+  PROMPT
+  CASE
+  CONTACT
+  OTHER
+}
+
+enum DownloadType {
+  CLIENT
+  AGENT
+  SKILL
+  TEMPLATE
+  RESOURCE
+  OTHER
+}
+
+enum Platform {
+  WINDOWS
+  MACOS
+  LINUX
+  WEB
+  ANDROID
+  IOS
+  OTHER
+}
+
+// ============================================================
+// 用户
+// ============================================================
+
+model User {
+  id           Int        @id @default(autoincrement())
+  email        String     @unique @db.VarChar(191)
+  passwordHash String     @db.VarChar(255)
+  name         String?    @db.VarChar(100)
+  avatar       String?    @db.VarChar(500)
+  phone        String?    @db.VarChar(30)
+  status       UserStatus @default(ACTIVE)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  lastLoginAt DateTime?
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("users")
+}
+
+// ============================================================
+// 管理员
+// ============================================================
+
+model Admin {
+  id           Int         @id @default(autoincrement())
+  username     String      @unique @db.VarChar(100)
+  passwordHash String      @db.VarChar(255)
+  name         String?     @db.VarChar(100)
+  email        String?     @db.VarChar(191)
+  role         String      @default("admin") @db.VarChar(50)
+  status       AdminStatus @default(ACTIVE)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  lastLoginAt DateTime?
+
+  // 新增
+  adminRoles AdminRole[]
+
+  @@index([status])
+  @@map("admins")
+}
+
+// ============================================================
+// AI 产品
+// ============================================================
+
+model Product {
+  id          Int     @id @default(autoincrement())
+  slug        String  @unique @db.VarChar(191)
+  name        String  @db.VarChar(100)
+  shortName   String? @db.VarChar(100)
+  description String? @db.VarChar(500)
+  content     String? @db.Text
+
+  icon       String? @db.VarChar(500)
+  coverImage String? @db.VarChar(500)
+  videoUrl   String? @db.VarChar(500)
+
+  status     ProductStatus @default(ACTIVE)
+  isEmployee Boolean       @default(false)
+  sortOrder  Int           @default(0)
+
+  seoTitle       String? @db.VarChar(255)
+  seoDescription String? @db.VarChar(500)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  features ProductFeature[]
+
+  @@index([status, sortOrder])
+  @@index([isEmployee, status, sortOrder])
+  @@map("products")
+}
+
+// ============================================================
+// 产品功能
+// ============================================================
+
+model ProductFeature {
+  id        Int @id @default(autoincrement())
+  productId Int
+
+  name        String  @db.VarChar(150)
+  description String? @db.VarChar(500)
+  icon        String? @db.VarChar(500)
+
+  sortOrder Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, sortOrder])
+  @@map("product_features")
+}
+
+// ============================================================
+// Skill 中心
+// ============================================================
+
+model Skill {
+  id          Int     @id @default(autoincrement())
+  slug        String  @unique @db.VarChar(191)
+  name        String  @db.VarChar(150)
+  description String? @db.VarChar(500)
+  content     String? @db.Text
+
+  icon       String? @db.VarChar(500)
+  coverImage String? @db.VarChar(500)
+
+  version String?     @db.VarChar(50)
+  status  SkillStatus @default(DRAFT)
+
+  downloadCount Int @default(0)
+  sortOrder     Int @default(0)
+
+  tags Json?
+
+  seoTitle       String? @db.VarChar(255)
+  seoDescription String? @db.VarChar(500)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  versions SkillVersion[]
+
+  @@index([status, sortOrder])
+  @@index([downloadCount])
+  @@map("skills")
+}
+
+// ============================================================
+// Skill 版本
+// ============================================================
+
+model SkillVersion {
+  id      Int @id @default(autoincrement())
+  skillId Int
+
+  version      String  @db.VarChar(50)
+  fileUrl      String  @db.VarChar(1000)
+  fileSize     BigInt?
+  releaseNotes String? @db.Text
+  fileAssetId  Int?
+  fileName     String? @db.VarChar(255)
+  mimeType     String? @db.VarChar(100)
+
+  isLatest Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  fileAsset MediaAsset? @relation("SkillVersionFile", fields: [fileAssetId], references: [id], onDelete: SetNull)
+
+  @@index([skillId, version])
+  @@index([fileAssetId])
+  @@index([skillId, isLatest])
+  @@map("skill_versions")
+}
+
+// ============================================================
+// Prompt 分类
+// ============================================================
+
+model PromptCategory {
+  id          Int     @id @default(autoincrement())
+  name        String  @unique @db.VarChar(100)
+  slug        String  @unique @db.VarChar(191)
+  description String? @db.VarChar(500)
+
+  sortOrder Int           @default(0)
+  status    ContentStatus @default(PUBLISHED)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  prompts Prompt[]
+
+  @@index([status, sortOrder])
+  @@map("prompt_categories")
+}
+
+// ============================================================
+// Prompt
+// ============================================================
+
+model Prompt {
+  id         Int  @id @default(autoincrement())
+  categoryId Int?
+
+  slug        String  @unique @db.VarChar(191)
+  title       String  @db.VarChar(200)
+  description String? @db.VarChar(500)
+  content     String  @db.Text
+  usage       String? @db.Text
+  model       String? @db.VarChar(100)
+
+  tags      Json?
+  copyCount Int   @default(0)
+  fileAssetId Int?
+  fileName String? @db.VarChar(255)
+  fileType String? @db.VarChar(100)
+
+  status ContentStatus @default(DRAFT)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  category PromptCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  fileAsset MediaAsset? @relation("PromptFile", fields: [fileAssetId], references: [id], onDelete: SetNull)
+
+  @@index([categoryId])
+  @@index([fileAssetId])
+  @@index([status, createdAt])
+  @@index([copyCount])
+  @@map("prompts")
+}
+
+// ============================================================
+// 资源分类
+// ============================================================
+
+model ResourceCategory {
+  id          Int     @id @default(autoincrement())
+  name        String  @unique @db.VarChar(100)
+  slug        String  @unique @db.VarChar(191)
+  description String? @db.VarChar(500)
+
+  sortOrder Int           @default(0)
+  status    ContentStatus @default(PUBLISHED)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  resources Resource[]
+
+  @@index([status, sortOrder])
+  @@map("resource_categories")
+}
+
+// ============================================================
+// 资源中心
+// ============================================================
+
+model Resource {
+  id         Int  @id @default(autoincrement())
+  categoryId Int?
+
+  slug        String  @unique @db.VarChar(191)
+  title       String  @db.VarChar(200)
+  description String? @db.VarChar(500)
+  content     String? @db.Text
+
+  coverImage  String? @db.VarChar(500)
+  fileUrl     String? @db.VarChar(1000)
+  videoUrl    String? @db.VarChar(1000)
+  fileName    String? @db.VarChar(255)
+  fileType    String? @db.VarChar(100)
+  fileAssetId Int?
+
+  tags          Json?
+  viewCount     Int   @default(0)
+  downloadCount Int   @default(0)
+
+  status    ContentStatus @default(DRAFT)
+  sortOrder Int           @default(0)
+
+  seoTitle       String? @db.VarChar(255)
+  seoDescription String? @db.VarChar(500)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  category  ResourceCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  fileAsset MediaAsset?       @relation("ResourceFile", fields: [fileAssetId], references: [id], onDelete: SetNull)
+
+  @@index([fileAssetId])
+  @@index([categoryId])
+  @@index([status, sortOrder])
+  @@index([viewCount])
+  @@map("resources")
+}
+
+// ============================================================
+// 教程分类
+// ============================================================
+
+model TutorialCategory {
+  id          Int     @id @default(autoincrement())
+  name        String  @unique @db.VarChar(100)
+  slug        String  @unique @db.VarChar(191)
+  description String? @db.VarChar(500)
+
+  sortOrder Int           @default(0)
+  status    ContentStatus @default(PUBLISHED)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tutorials Tutorial[]
+
+  @@index([status, sortOrder])
+  @@map("tutorial_categories")
+}
+
+// ============================================================
+// 教程
+// ============================================================
+
+model Tutorial {
+  id         Int  @id @default(autoincrement())
+  categoryId Int?
+
+  slug        String  @unique @db.VarChar(191)
+  title       String  @db.VarChar(200)
+  description String? @db.VarChar(500)
+  content     String? @db.Text
+
+  coverImage String? @db.VarChar(500)
+  videoUrl   String? @db.VarChar(1000)
+
+  duration Int?
+  tags     Json?
+
+  viewCount Int           @default(0)
+  sortOrder Int           @default(0)
+  status    ContentStatus @default(DRAFT)
+
+  seoTitle       String? @db.VarChar(255)
+  seoDescription String? @db.VarChar(500)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  category TutorialCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([categoryId])
+  @@index([status, sortOrder])
+  @@index([viewCount])
+  @@map("tutorials")
+}
+
+// ============================================================
+// 产品下载
+// ============================================================
+
+model Download {
+  id       Int          @id @default(autoincrement())
+  name     String       @db.VarChar(150)
+  type     DownloadType
+  platform Platform?
+
+  description String?        @db.VarChar(500)
+  status      DownloadStatus @default(ACTIVE)
+
+  sortOrder Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  versions DownloadVersion[]
+
+  @@index([type, platform])
+  @@index([status, sortOrder])
+  @@map("downloads")
+}
+
+// ============================================================
+// 下载版本
+// ============================================================
+
+model DownloadVersion {
+  id         Int @id @default(autoincrement())
+  downloadId Int
+
+  version        String  @db.VarChar(50)
+  sourceType     String  @default("baidu") @db.VarChar(50)
+  url            String  @db.VarChar(2000)
+  extractionCode String? @db.VarChar(100)
+
+  fileSize     BigInt?
+  releaseNotes String? @db.Text
+
+  isLatest Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  download Download @relation(fields: [downloadId], references: [id], onDelete: Cascade)
+
+  @@index([downloadId, version])
+  @@index([downloadId, isLatest])
+  @@map("download_versions")
+}
+
+// ============================================================
+// 解决方案
+// ============================================================
+
+model Solution {
+  id Int @id @default(autoincrement())
+
+  slug        String  @unique @db.VarChar(191)
+  name        String  @db.VarChar(150)
+  description String? @db.VarChar(500)
+  content     String? @db.Text
+
+  coverImage String? @db.VarChar(500)
+  icon       String? @db.VarChar(500)
+
+  tags Json?
+
+  status    ContentStatus @default(DRAFT)
+  sortOrder Int           @default(0)
+
+  seoTitle       String? @db.VarChar(255)
+  seoDescription String? @db.VarChar(500)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, sortOrder])
+  @@map("solutions")
+}
+
+// ============================================================
+// 案例
+// ============================================================
+
+model CaseStudy {
+  id Int @id @default(autoincrement())
+
+  slug        String  @unique @db.VarChar(191)
+  title       String  @db.VarChar(200)
+  description String? @db.VarChar(500)
+  content     String? @db.Text
+
+  companyName String? @db.VarChar(200)
+  industry    String? @db.VarChar(100)
+
+  coverImage String? @db.VarChar(500)
+  logo       String? @db.VarChar(500)
+
+  results Json?
+  tags    Json?
+
+  status    ContentStatus @default(DRAFT)
+  sortOrder Int           @default(0)
+
+  seoTitle       String? @db.VarChar(255)
+  seoDescription String? @db.VarChar(500)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([industry])
+  @@index([status, sortOrder])
+  @@map("cases")
+}
+
+// ============================================================
+// 文章 / 新闻
+// ============================================================
+
+model Article {
+  id Int @id @default(autoincrement())
+
+  slug    String  @unique @db.VarChar(191)
+  title   String  @db.VarChar(255)
+  summary String? @db.VarChar(500)
+  content String  @db.Text
+
+  coverImage String? @db.VarChar(500)
+  author     String? @db.VarChar(100)
+  tags       Json?
+
+  viewCount Int           @default(0)
+  status    ContentStatus @default(DRAFT)
+
+  publishedAt DateTime?
+
+  seoTitle       String? @db.VarChar(255)
+  seoDescription String? @db.VarChar(500)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, publishedAt])
+  @@index([viewCount])
+  @@map("articles")
+}
+
+// ============================================================
+// FAQ
+// ============================================================
+
+model Faq {
+  id Int @id @default(autoincrement())
+
+  question String @db.VarChar(500)
+  answer   String @db.Text
+
+  category  String?       @db.VarChar(100)
+  sortOrder Int           @default(0)
+  status    ContentStatus @default(PUBLISHED)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category, sortOrder])
+  @@index([status])
+  @@map("faqs")
+}
+
+// ============================================================
+// 销售线索
+// ============================================================
+
+model Lead {
+  id Int @id @default(autoincrement())
+
+  name    String? @db.VarChar(100)
+  company String? @db.VarChar(200)
+  phone   String? @db.VarChar(30)
+  wechat  String? @db.VarChar(100)
+
+  industry String?    @db.VarChar(100)
+  source   LeadSource @default(WEBSITE)
+
+  message String? @db.Text
+
+  status LeadStatus @default(NEW)
+
+  assignedTo String? @db.VarChar(100)
+  remark     String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@index([source])
+  @@index([phone])
+  @@map("leads")
+}
+
+// ============================================================
+// 更新日志
+// ============================================================
+
+model Changelog {
+  id Int @id @default(autoincrement())
+
+  version String @db.VarChar(50)
+  title   String @db.VarChar(200)
+  content String @db.Text
+
+  releaseDate DateTime
+  status      ContentStatus @default(PUBLISHED)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([releaseDate])
+  @@index([status, releaseDate])
+  @@map("changelogs")
+}
+
+// ============================================================
+// 网站设置
+// ============================================================
+
+model SiteSetting {
+  id Int @id @default(1)
+
+  siteName String? @db.VarChar(200)
+  logo     String? @db.VarChar(500)
+  favicon  String? @db.VarChar(500)
+
+  phone   String? @db.VarChar(50)
+  wechat  String? @db.VarChar(100)
+  email   String? @db.VarChar(191)
+  address String? @db.VarChar(500)
+
+  copyright String? @db.VarChar(500)
+  icp       String? @db.VarChar(100)
+
+  downloadUrl String? @db.VarChar(2000)
+
+  socialLinks Json?
+
+  seoTitle       String? @db.VarChar(255)
+  seoDescription String? @db.VarChar(500)
+  seoKeywords    String? @db.VarChar(500)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("site_settings")
+}
+
+model Page {
+  id          Int     @id @default(autoincrement())
+  slug        String  @unique @db.VarChar(191)
+  title       String  @db.VarChar(200)
+  description String? @db.VarChar(500)
+  content     String? @db.Text
+  coverImage  String? @db.VarChar(1000)
+
+  status    ContentStatus @default(DRAFT)
+  sortOrder Int           @default(0)
+
+  seoTitle       String? @db.VarChar(255)
+  seoDescription String? @db.VarChar(500)
+  seoKeywords    String? @db.VarChar(500)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sections PageSection[]
+
+  @@index([status, sortOrder])
+  @@map("pages")
+}
+
+model PageSection {
+  id         Int      @id @default(autoincrement())
+  pageId     Int
+  sectionKey String   @db.VarChar(100)
+  title      String?  @db.VarChar(255)
+  subtitle   String?  @db.VarChar(500)
+  content    String?  @db.Text
+  imageUrl   String?  @db.VarChar(1000)
+  videoUrl   String?  @db.VarChar(1000)
+  data       Json?
+  sortOrder  Int      @default(0)
+  enabled    Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  page Page @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@unique([pageId, sectionKey])
+  @@index([pageId, sortOrder])
+  @@index([pageId, enabled])
+  @@map("page_sections")
+}
+
+model MediaAsset {
+  id Int @id @default(autoincrement())
+
+  name String @db.VarChar(200)
+  type String @db.VarChar(50)
+
+  url       String  @db.VarChar(2000)
+  thumbnail String? @db.VarChar(2000)
+
+  mimeType String? @db.VarChar(100)
+  fileSize BigInt?
+
+  alt         String? @db.VarChar(500)
+  description String? @db.VarChar(500)
+
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([type])
+  storageProvider String  @default("LOCAL") @db.VarChar(30)
+  storageKey String? @db.VarChar(2000)
+  originalName String? @db.VarChar(500)
+  extension String? @db.VarChar(30)
+  folder String? @db.VarChar(255)
+  width Int?
+  height Int?
+  metadata Json?
+  isPublic Boolean @default(true)
+
+  skillVersions SkillVersion[] @relation("SkillVersionFile")
+  promptFiles Prompt[] @relation("PromptFile")
+  resourceFiles Resource[] @relation("ResourceFile")
+
+  @@index([createdAt])
+  @@index([storageProvider])
+  @@index([folder])
+  @@map("media_assets")
+}
+
+// ============================================================
+// 云存储配置
+// ============================================================
+
+model StorageConfig {
+  id Int @id @default(1)
+  provider String @default("LOCAL") @db.VarChar(30)
+  endpoint String? @db.VarChar(500)
+  region String? @db.VarChar(100)
+  bucket String? @db.VarChar(255)
+  accessKeyId String? @db.VarChar(255)
+  secretEncrypted String? @db.VarChar(1000)
+  basePath String? @db.VarChar(500)
+  cdnUrl String? @db.VarChar(1000)
+  maxFileSizeMb Int @default(2048)
+  allowedTypes Json?
+  enabled Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("storage_configs")
+}
+
+// ============================================================
+// RBAC 权限系统 v3
+// ============================================================
+
+model Role {
+  id          Int              @id @default(autoincrement())
+  name        String           @unique @db.VarChar(50)
+  description String?          @db.VarChar(255)
+  createdAt   DateTime         @default(now())
+  permissions RolePermission[]
+  admins      AdminRole[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id        Int              @id @default(autoincrement())
+  code      String           @unique @db.VarChar(100)
+  name      String           @db.VarChar(100)
+  createdAt DateTime         @default(now())
+  roles     RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           Int        @id @default(autoincrement())
+  roleId       Int
+  permissionId Int
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model AdminRole {
+  id      Int   @id @default(autoincrement())
+  adminId Int
+  roleId  Int
+  admin   Admin @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  role    Role  @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([adminId, roleId])
+  @@map("admin_roles")
+}
+
+model HomeConfig {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique @db.VarChar(100)
+  value     String?  @db.Text
+  status    Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+
+  @@map("home_configs")
+}

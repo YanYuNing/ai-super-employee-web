@@ -1,0 +1,63 @@
+{
+  "name": "ai-super-employee-web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "seed:home": "tsx scripts/seed-home.ts",
+    "seed:cms": "tsx scripts/seed-cms.ts",
+    "seed:stage05:content": "tsx scripts/seed-stage05-content.ts",
+    "seed:rbac": "tsx scripts/seed-rbac.ts",
+    "admin:repair": "tsx scripts/repair-admin-access.ts",
+    "seed:stage06.6.3": "tsx scripts/seed-stage06-6-3-pages.ts",
+    "seed:employee-showcase": "tsx scripts/seed-employee-showcase.ts",
+    "test:storage": "tsx scripts/test-storage-config.ts",
+    "prisma:generate": "prisma generate",
+    "predev": "prisma generate",
+    "prebuild": "prisma generate",
+    "storage:repair": "tsx scripts/repair-storage-config.ts",
+    "storage:check": "tsx scripts/test-storage-config.ts",
+    "file-storage:repair": "tsx scripts/repair-storage-config.ts",
+    "repair:stage06.13": "tsx scripts/repair-stage06-13-public-cms.ts",
+    "repair:stage06.14": "tsx scripts/repair-stage06-14-admin-public-audit.ts",
+    "repair:stage06.15": "tsx scripts/repair-stage06-15-admin-public-audit.ts",
+    "db:push:supabase": "node scripts/preflight-supabase-target.mjs && tsx scripts/inspect-supabase-target.ts && prisma db push",
+    "storage:setup:supabase": "node scripts/preflight-supabase-target.mjs && tsx scripts/setup-supabase-storage.ts",
+    "storage:migrate:supabase": "node scripts/preflight-supabase-target.mjs && tsx scripts/migrate-assets-to-supabase.ts",
+    "db:check": "tsx scripts/test-db.ts",
+    "supabase:deploy:prep": "prisma generate && prisma db push",
+    "db:migrate:postgres": "node scripts/preflight-supabase-target.mjs && tsx scripts/migrate-postgres-to-supabase.ts",
+    "db:repair:postgres-enums": "node scripts/repair-postgres-enums.mjs",
+    "db:preflight:supabase": "node scripts/preflight-supabase-target.mjs",
+    "seed:employee-showcase:supabase": "node scripts/preflight-supabase-target.mjs && tsx scripts/seed-employee-showcase.ts",
+    "db:inspect:supabase": "tsx scripts/inspect-supabase-target.ts"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.10.0",
+    "@prisma/client": "^7.10.0",
+    "dotenv": "^17.2.3",
+    "next": "16.3.6",
+    "pg": "^8.16.3",
+    "prisma": "^7.10.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.6",
+    "tailwindcss": "^4",
+    "tsx": "^4.23.15",
+    "typescript": "^5",
+    "@types/pg": "^8.15.5"
+  },
+  "engines": {
+    "node": "22.x"
+  }
+}

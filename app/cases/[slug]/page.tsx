@@ -1,0 +1,10 @@
+import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
+import Link from 'next/link';
+import SiteHeader from '@/components/site-header';
+import SiteFooter from '@/components/site-footer';
+import { prisma } from '@/lib/prisma';
+import { getPage } from '@/lib/public-site';
+import { getPageData } from '@/lib/public-page';
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> { const { slug } = await params; const x = await prisma.caseStudy.findFirst({ where: { slug, status: 'PUBLISHED' } }); return { title: x?.seoTitle || `${x?.title || '客户案例'}｜豫辉 AI超级员工`, description: x?.seoDescription || x?.description || '豫辉 AI超级员工客户案例。' }; }
+export default async function CaseDetail({ params }: { params: Promise<{ slug: string }> }) { const { slug } = await params; const [x, cms] = await Promise.all([prisma.caseStudy.findFirst({ where: { slug, status: 'PUBLISHED' } }), getPage('cases')]); if (!x) notFound(); const detail = getPageData(cms, 'detail'); const results = x.results && typeof x.results === 'object' && !Array.isArray(x.results) ? Object.entries(x.results as Record<string, unknown>) : []; return <main className="public-page"><SiteHeader dark/><section className="inner-hero inner-hero-light"><div className="container inner-hero-inner"><span className="section-kicker">{detail.kicker || 'CASE STUDY'}</span><h1>{x.title}</h1><p>{x.description || x.companyName || ''}</p></div></section><section className="public-section"><div className="container detail-content">{x.coverImage&&<img className="detail-cover" src={x.coverImage} alt={x.title}/>}<div className="rich-content">{x.content||detail.emptyContent||'案例详情正在持续完善。'}</div>{results.length>0&&<div className="public-feature-grid">{results.map(([k,v])=><div key={k}><strong>{k}</strong><p>{typeof v==='string'?v:JSON.stringify(v)}</p></div>)}</div>}<Link href={detail.primary?.url || '/contact'} className="button button-primary">{detail.primary?.text || '咨询类似方案'}</Link></div></section><SiteFooter/></main>; }

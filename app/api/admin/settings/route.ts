@@ -1,0 +1,6 @@
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { Prisma } from '@/generated/prisma/client';
+import { checkPermission } from '@/lib/admin-auth';
+export async function GET(){ const admin = await checkPermission('settings.view'); if (!admin) return NextResponse.json({success:false,message:'没有权限'},{status:403});const data=await prisma.siteSetting.findUnique({where:{id:1}});return NextResponse.json({success:true,data:data||{id:1}});}
+export async function PUT(req:Request){ const admin = await checkPermission('settings.edit'); if (!admin) return NextResponse.json({success:false,message:'没有权限'},{status:403});try{const b=await req.json();const common={siteName:b.siteName||null,logo:b.logo||null,favicon:b.favicon||null,phone:b.phone||null,wechat:b.wechat||null,email:b.email||null,address:null,copyright:b.copyright||null,icp:b.icp||null,downloadUrl:null,socialLinks: Prisma.DbNull,seoTitle:b.seoTitle||null,seoDescription:b.seoDescription||null,seoKeywords:b.seoKeywords||null};const data=await prisma.siteSetting.upsert({where:{id:1},update:common,create:{id:1,...common}});return NextResponse.json({success:true,data});}catch(e){return NextResponse.json({success:false,message:e instanceof Error?e.message:'保存网站设置失败'},{status:400});}}

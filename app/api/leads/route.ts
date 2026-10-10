@@ -1,0 +1,3 @@
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+export async function POST(request: Request) { try { const body=await request.json(); const lead=await prisma.lead.create({data:{name:body.name||null,company:body.company||null,phone:body.phone||null,wechat:body.wechat||null,industry:body.industry||null,message:body.message||null,source:body.source==='DEMO'?'DEMO':'CONTACT'}}); return NextResponse.json({success:true,data:{id:lead.id}}); } catch(error){ console.error('create lead failed',error); return NextResponse.json({success:false,message:'提交失败，请稍后重试'},{status:400}); } }
